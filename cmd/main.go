@@ -7,6 +7,7 @@ import (
 )
 
 func main() {
+	auth := auth.Auth{}
 	if err := auth.Setup(); err != nil {
 		log.Fatal(err)
 	}
