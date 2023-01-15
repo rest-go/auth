@@ -47,7 +47,14 @@ func TestAuthHandler(t *testing.T) {
 		defer res.Body.Close()
 		assert.Equal(t, http.StatusBadRequest, res.StatusCode)
 	})
-
+}
+func TestAuthActions(t *testing.T) {
+	db, err := sqlx.Open("sqlite://ci.db")
+	assert.Nil(t, err)
+	auth := Auth{db: db}
+	_, err = auth.db.ExecQuery(context.Background(), "DROP TABLE IF EXISTS users")
+	assert.Nil(t, err)
+	_ = auth.setup()
 	t.Run("register", func(t *testing.T) {
 		body := strings.NewReader(`{
 			"username": "hello",

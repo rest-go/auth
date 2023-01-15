@@ -59,27 +59,32 @@ func TestAuthMiddleware(t *testing.T) {
 	assert.Nil(t, err)
 	token := resData["token"]
 
-	req = httptest.NewRequest(http.MethodGet, "/test", nil)
-	req.Header.Add(AuthTokenHeader, token)
-	w = httptest.NewRecorder()
-	testHandler(w, req)
-	res = w.Result()
-	assert.Equal(t, http.StatusUnauthorized, res.StatusCode)
+	t.Run("not authorized", func(t *testing.T) {
+		req := httptest.NewRequest(http.MethodGet, "/test", nil)
+		req.Header.Add(AuthTokenHeader, token)
+		w = httptest.NewRecorder()
+		testHandler(w, req)
+		res := w.Result()
+		defer res.Body.Close()
+		assert.Equal(t, http.StatusUnauthorized, res.StatusCode)
+	})
+	t.Run(" authorized", func(t *testing.T) {
+		w := httptest.NewRecorder()
+		req := httptest.NewRequest(http.MethodGet, "/test", nil)
+		req.Header.Add(AuthTokenHeader, token)
+		authHandler := auth.Middleware(http.HandlerFunc(testHandler))
+		authHandler.ServeHTTP(w, req)
+		res := w.Result()
+		defer res.Body.Close()
+		assert.Equal(t, http.StatusOK, res.StatusCode)
 
-	w = httptest.NewRecorder()
-	req = httptest.NewRequest(http.MethodGet, "/test", nil)
-	req.Header.Add(AuthTokenHeader, token)
-	authHandler := auth.Middleware(http.HandlerFunc(testHandler))
-	authHandler.ServeHTTP(w, req)
-	res = w.Result()
-	assert.Equal(t, http.StatusOK, res.StatusCode)
-	defer res.Body.Close()
-	data, err = io.ReadAll(res.Body)
-	if err != nil {
-		t.Error(err)
-	}
-	t.Log("get user data middleware: ", string(data))
-	var userRes map[string]any
-	err = json.Unmarshal(data, &userRes)
-	assert.Nil(t, err)
+		data, err = io.ReadAll(res.Body)
+		if err != nil {
+			t.Error(err)
+		}
+		t.Log("get user data middleware: ", string(data))
+		var userRes map[string]any
+		err = json.Unmarshal(data, &userRes)
+		assert.Nil(t, err)
+	})
 }

@@ -35,9 +35,11 @@ type User struct {
 func (u *User) IsAnonymous() bool {
 	return u.ID == 0
 }
+
 func (u *User) IsAuthenticated() bool {
 	return u.ID != 0
 }
+
 func hashPassword(password string) (string, error) {
 	hashedPassword, err := bcrypt.GenerateFromPassword([]byte(password), bcrypt.DefaultCost)
 	if err != nil {

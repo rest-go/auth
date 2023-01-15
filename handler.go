@@ -66,7 +66,8 @@ func (a *Auth) setup() any {
 		return j.SQLErrResponse(dbErr)
 	}
 	username := superUsername
-	password := genPasswd(12)
+	length := 12
+	password := genPasswd(length)
 	hashedPassword, err := hashPassword(password)
 	if err != nil {
 		return &j.Response{
@@ -160,7 +161,7 @@ func (a *Auth) login(r *http.Request) any {
 	}{tokenString}
 }
 
-func (a *Auth) logout(r *http.Request) any {
+func (a *Auth) logout(_ *http.Request) any {
 	// client delete token, no op on server side
 	return &j.Response{Code: http.StatusOK, Msg: "success"}
 }
