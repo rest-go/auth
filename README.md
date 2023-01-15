@@ -56,10 +56,10 @@ func main() {
 }
 ```
 
-## Setup database tables
+## Setup database
 
 Send a `POST` request to `/auth/setup` to set up database tables for users. This
-will create a super user account and return the username and password in the
+will also create a super user account and return the username and password in the
 response.
 
 ``` bash
@@ -94,7 +94,7 @@ $ curl  -XPOST "localhost:8000/auth/logout"
 
 Auth middleware will parse JWT token in the HTTP header, and when successful,
 set the user in the request context, the `GetUser` method can be used to get the
-user from request.
+user from the request.
 
 ``` go
 user := auth.GetUser(req)

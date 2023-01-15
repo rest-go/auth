@@ -30,7 +30,13 @@ func (a *Auth) Middleware(next http.Handler) http.Handler {
 				log.Printf("parse token err: %v", err)
 			} else {
 				if claims, ok := token.Claims.(jwt.MapClaims); ok && token.Valid {
-					user = &User{ID: int64(claims["user_id"].(float64)), IsAdmin: claims["is_admin"].(bool), IsSuperUser: claims["is_superuser"].(bool)}
+					user = &User{ID: int64(claims["user_id"].(float64))}
+					if isAdmin, ok := claims["is_admin"]; ok {
+						user.IsAdmin = isAdmin.(bool)
+					}
+					if isSuperUser, ok := claims["is_superuser"]; ok {
+						user.IsSuperUser = isSuperUser.(bool)
+					}
 				} else {
 					log.Printf("invalid token: %v", token)
 				}
