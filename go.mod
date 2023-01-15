@@ -4,7 +4,7 @@ go 1.18
 
 require (
 	github.com/golang-jwt/jwt/v4 v4.4.3
-	github.com/rest-go/rest v0.0.0-20230112024519-532b3a5ad3a0
+	github.com/rest-go/rest v0.0.0-20230115080522-05c30a78e55a
 	github.com/stretchr/testify v1.8.1
 	golang.org/x/crypto v0.5.0
 )
@@ -41,5 +41,3 @@ require (
 	modernc.org/strutil v1.1.3 // indirect
 	modernc.org/token v1.0.1 // indirect
 )
-
-replace github.com/rest-go/rest v0.0.0-20230112024519-532b3a5ad3a0 => /Users/hao/go/src/github.com/rest-go/rest

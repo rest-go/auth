@@ -31,7 +31,16 @@ func TestAuthHandler(t *testing.T) {
 	})
 
 	t.Run("action not provided", func(t *testing.T) {
-		req := httptest.NewRequest(http.MethodPost, "/auth/login", nil)
+		req := httptest.NewRequest(http.MethodPost, "/auth/", nil)
+		w := httptest.NewRecorder()
+		auth.ServeHTTP(w, req)
+		res := w.Result()
+		defer res.Body.Close()
+		assert.Equal(t, http.StatusBadRequest, res.StatusCode)
+	})
+
+	t.Run("action not supported", func(t *testing.T) {
+		req := httptest.NewRequest(http.MethodPost, "/auth/x", nil)
 		w := httptest.NewRecorder()
 		auth.ServeHTTP(w, req)
 		res := w.Result()

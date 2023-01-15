@@ -115,7 +115,7 @@ func (a *Auth) Login(r *http.Request) any {
 	})
 
 	// Sign and get the complete encoded token as a string using the secret
-	tokenString, err := token.SignedString([]byte(a.secret))
+	tokenString, err := token.SignedString(a.secret)
 	if err != nil {
 		return &j.Response{
 			Code: http.StatusBadRequest,
