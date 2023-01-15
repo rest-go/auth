@@ -15,7 +15,7 @@ import (
 	"golang.org/x/crypto/bcrypt"
 )
 
-func (a *Auth) Handler(w http.ResponseWriter, r *http.Request) {
+func (a *Auth) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	// /auth/register
 	// /auth/login
 	// /auth/logout
@@ -24,7 +24,7 @@ func (a *Auth) Handler(w http.ResponseWriter, r *http.Request) {
 			Code: http.StatusMethodNotAllowed,
 			Msg:  fmt.Sprintf("method not supported: %s", r.Method),
 		}
-		j.Encode(w, res)
+		j.Write(w, res)
 		return
 	}
 
@@ -34,86 +34,76 @@ func (a *Auth) Handler(w http.ResponseWriter, r *http.Request) {
 			Code: http.StatusBadRequest,
 			Msg:  "no auth action provided",
 		}
-		j.Encode(w, res)
+		j.Write(w, res)
 		return
 	}
 
+	var res any
 	switch action {
 	case "register":
-		a.Register(w, r)
+		res = a.Register(r)
 	case "login":
-		a.Login(w, r)
+		res = a.Login(r)
 	case "logout":
-		a.Logout(w, r)
+		res = a.Logout(r)
 	default:
-		res := &j.Response{
+		res = &j.Response{
 			Code: http.StatusBadRequest,
 			Msg:  "action not supported",
 		}
-		j.Encode(w, res)
 	}
+	j.Write(w, res)
 }
 
-func (a *Auth) Register(w http.ResponseWriter, r *http.Request) {
+func (a *Auth) Register(r *http.Request) any {
 	user := &User{}
 	err := json.NewDecoder(r.Body).Decode(&user)
 	if err != nil {
-		res := &j.Response{
+		return &j.Response{
 			Code: http.StatusBadRequest,
 			Msg:  "failed to decode json data",
 		}
-		j.Encode(w, res)
-		return
 	}
 
 	ctx, cancel := context.WithTimeout(context.Background(), sqlx.DefaultTimeout)
 	defer cancel()
 	hashedPassword, err := hashPassword(user.Password)
 	if err != nil {
-		res := &j.Response{
+		return &j.Response{
 			Code: http.StatusInternalServerError,
 			Msg:  "failed to hash password",
 		}
-		j.Encode(w, res)
-		return
 	}
 	_, dbErr := a.db.ExecQuery(ctx, createUser, user.Username, hashedPassword)
 	if dbErr != nil {
-		res := j.SQLErrResponse(dbErr)
-		j.Encode(w, res)
-		return
+		return j.SQLErrResponse(dbErr)
 	}
-	res := j.Response{Code: http.StatusOK, Msg: "success"}
-	j.Encode(w, res)
+
+	return &j.Response{Code: http.StatusOK, Msg: "success"}
 }
 
-func (a *Auth) Login(w http.ResponseWriter, r *http.Request) {
+func (a *Auth) Login(r *http.Request) any {
 	user := &User{}
 	err := json.NewDecoder(r.Body).Decode(&user)
 	if err != nil {
-		res := &j.Response{
+		return &j.Response{
 			Code: http.StatusBadRequest,
 			Msg:  fmt.Sprintf("failed to parse post json data, %v", err),
 		}
-		j.Encode(w, res)
-		return
 	}
 
 	// authenticate the user with username and password
 	user, err = a.Authenticate(user.Username, user.Password)
 	if err != nil {
-		var dbErr *sqlx.Error
-		var res *j.Response
-		if errors.As(err, dbErr) {
-			res = j.SQLErrResponse(dbErr)
+		var dbErr sqlx.Error
+		if errors.As(err, &dbErr) {
+			return j.SQLErrResponse(dbErr)
 		} else {
-			res = &j.Response{
-				Code: http.StatusBadRequest,
+			return &j.Response{
+				Code: http.StatusUnauthorized,
 				Msg:  fmt.Sprintf("failed to authenticate user, %v", err),
 			}
 		}
-		j.Encode(w, res)
-		return
 	}
 
 	// generate and return jwt token
@@ -126,46 +116,41 @@ func (a *Auth) Login(w http.ResponseWriter, r *http.Request) {
 
 	// Sign and get the complete encoded token as a string using the secret
 	tokenString, err := token.SignedString([]byte(a.secret))
-	var res any
 	if err != nil {
-		res = &j.Response{
+		return &j.Response{
 			Code: http.StatusBadRequest,
 			Msg:  fmt.Sprintf("failed to generate token, %v", err),
 		}
-	} else {
-		res = &struct {
-			Token string `json:"token"`
-		}{tokenString}
 	}
-	j.Encode(w, res)
+
+	return &struct {
+		Token string `json:"token"`
+	}{tokenString}
 }
 
-func (a *Auth) Logout(w http.ResponseWriter, r *http.Request) {
+func (a *Auth) Logout(r *http.Request) any {
 	// client delete token, no op on server side
+	return &j.Response{Code: http.StatusOK, Msg: "success"}
 }
 
 func (a *Auth) Authenticate(username, password string) (*User, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), sqlx.DefaultTimeout)
 	defer cancel()
 
-	users, dbErr := a.db.FetchData(ctx, queryUser, username)
+	row, dbErr := a.db.FetchOne(ctx, queryUser, username)
 	if dbErr != nil {
 		return nil, dbErr
 	}
-	if len(users) == 0 {
-		return nil, errors.New("no user matched found in database")
-	}
-	data := users[0]
-	hashedPassword := data["password"].(string)
+	hashedPassword := row["password"].(string)
 	err := bcrypt.CompareHashAndPassword([]byte(hashedPassword), []byte(password))
 	if err != nil {
 		return nil, errors.New("password doesn't match")
 	}
 	user := &User{
-		ID:          data["id"].(int64),
+		ID:          row["id"].(int64),
 		Username:    username,
-		IsAdmin:     data["is_admin"].(bool),
-		IsSuperUser: data["is_superuser"].(bool),
+		IsAdmin:     row["is_admin"].(bool),
+		IsSuperUser: row["is_superuser"].(bool),
 	}
 	return user, nil
 }
