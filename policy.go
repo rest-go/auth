@@ -30,25 +30,25 @@ var defaultPolicies = []Policy{
 		Description: "read users is limited to current auth user or admin user",
 		TableName:   "users",
 		Action:      "read",
-		Expression:  "id == auth_user.id OR auth_user.is_admin",
+		Expression:  "id = auth_user.id",
 	},
 	{
 		Description: "update users is limited to current auth user",
 		TableName:   "users",
 		Action:      "update",
-		Expression:  "id == auth_user.id",
+		Expression:  "id = auth_user.id",
 	},
 	{
 		Description: "delete users is limited to current auth user",
 		TableName:   "users",
 		Action:      "delete",
-		Expression:  "id == auth_user.id",
+		Expression:  "id = auth_user.id",
 	},
 	{
 		Description: "policies operations are limited to admin user",
 		TableName:   "policies",
 		Action:      "all",
-		Expression:  "auth_user.is_admin AND NOT internal",
+		Expression:  "auth_user.is_admin",
 	},
 }
 

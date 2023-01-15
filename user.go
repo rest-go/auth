@@ -6,6 +6,7 @@ import (
 	"encoding/base32"
 	"fmt"
 	"log"
+	"strings"
 
 	"github.com/rest-go/rest/pkg/sqlx"
 	"golang.org/x/crypto/bcrypt"
@@ -41,6 +42,33 @@ func (u *User) IsAnonymous() bool {
 
 func (u *User) IsAuthenticated() bool {
 	return u.ID != 0
+}
+
+func (u *User) hasPerm(policy *Policy) (hasPerm bool, withUserIDColumn string) {
+	// remove all the spaces in expression
+	exp := strings.ReplaceAll(policy.Expression, " ", "")
+	// if ask a admin user perm
+	if exp == "auth_user.is_admin" && u.IsAdmin {
+		return true, ""
+	} else if strings.HasSuffix(exp, "=auth_user.id") {
+		// has perm to query table, but will check user id column
+		return true, strings.TrimSuffix(exp, "=auth_user.id")
+	}
+
+	log.Print("invalid policy rule found, return false")
+	return false, ""
+}
+
+func (u *User) HasPerm(table, action string, policies map[string]map[string]Policy) (hasPerm bool, withUserIDColumn string) {
+	if ps, ok := policies[table]; ok {
+		if policy, ok := ps[action]; ok {
+			return u.hasPerm(&policy)
+		} else if policy, ok := ps["all"]; ok {
+			return u.hasPerm(&policy)
+		}
+	}
+
+	return true, ""
 }
 
 func hashPassword(password string) (string, error) {
