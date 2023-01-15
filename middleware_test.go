@@ -31,8 +31,7 @@ func TestAuthMiddleware(t *testing.T) {
 	assert.Nil(t, err)
 	_, err = auth.db.ExecQuery(context.Background(), "DROP TABLE IF EXISTS users")
 	assert.Nil(t, err)
-	err = auth.Setup()
-	assert.Nil(t, err)
+	_ = auth.setup()
 
 	body := strings.NewReader(`{
 			"username": "hello",

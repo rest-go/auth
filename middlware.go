@@ -17,7 +17,6 @@ const AuthUserKey = AuthUserCtxKey("auth-user")
 func (a *Auth) Middleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		user := &User{}
-
 		tokenString := r.Header.Get(AuthTokenHeader)
 		if tokenString != "" {
 			token, err := jwt.Parse(tokenString, func(token *jwt.Token) (interface{}, error) {

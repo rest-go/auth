@@ -19,8 +19,8 @@ func TestAuthHandler(t *testing.T) {
 	auth := Auth{db: db}
 	_, err = auth.db.ExecQuery(context.Background(), "DROP TABLE IF EXISTS users")
 	assert.Nil(t, err)
-	err = auth.Setup()
-	assert.Nil(t, err)
+	_ = auth.setup()
+
 	t.Run("method not allowed", func(t *testing.T) {
 		req := httptest.NewRequest(http.MethodGet, "/auth/login", nil)
 		w := httptest.NewRecorder()

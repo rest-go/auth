@@ -15,10 +15,9 @@ import (
 	"golang.org/x/crypto/bcrypt"
 )
 
+const superUsername = "rest_super"
+
 func (a *Auth) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	// /auth/register
-	// /auth/login
-	// /auth/logout
 	if r.Method != http.MethodPost {
 		res := &j.Response{
 			Code: http.StatusMethodNotAllowed,
@@ -40,12 +39,14 @@ func (a *Auth) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
 	var res any
 	switch action {
+	case "setup":
+		res = a.setup()
 	case "register":
-		res = a.Register(r)
+		res = a.register(r)
 	case "login":
-		res = a.Login(r)
+		res = a.login(r)
 	case "logout":
-		res = a.Logout(r)
+		res = a.logout(r)
 	default:
 		res = &j.Response{
 			Code: http.StatusBadRequest,
@@ -55,7 +56,31 @@ func (a *Auth) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	j.Write(w, res)
 }
 
-func (a *Auth) Register(r *http.Request) any {
+func (a *Auth) setup() any {
+	idSQL := primaryKeySQL[a.db.DriverName]
+	createTableQuery := fmt.Sprintf(createUserTable, idSQL)
+	ctx, cancel := context.WithTimeout(context.Background(), sqlx.DefaultTimeout)
+	defer cancel()
+	_, dbErr := a.db.ExecQuery(ctx, createTableQuery)
+	if dbErr != nil {
+		return j.SQLErrResponse(dbErr)
+	}
+	username := superUsername
+	password := genPasswd(12)
+	_, dbErr = a.db.ExecQuery(ctx, createSuperUser, username, password)
+	if dbErr != nil {
+		return j.SQLErrResponse(dbErr)
+	}
+	return &struct {
+		Username string
+		Password string
+	}{
+		Username: username,
+		Password: password,
+	}
+}
+
+func (a *Auth) register(r *http.Request) any {
 	user := &User{}
 	err := json.NewDecoder(r.Body).Decode(&user)
 	if err != nil {
@@ -82,7 +107,7 @@ func (a *Auth) Register(r *http.Request) any {
 	return &j.Response{Code: http.StatusOK, Msg: "success"}
 }
 
-func (a *Auth) Login(r *http.Request) any {
+func (a *Auth) login(r *http.Request) any {
 	user := &User{}
 	err := json.NewDecoder(r.Body).Decode(&user)
 	if err != nil {
@@ -92,8 +117,8 @@ func (a *Auth) Login(r *http.Request) any {
 		}
 	}
 
-	// authenticate the user with username and password
-	user, err = a.Authenticate(user.Username, user.Password)
+	// authenticate the user by input username and password
+	user, err = a.authenticate(user.Username, user.Password)
 	if err != nil {
 		var dbErr sqlx.Error
 		if errors.As(err, &dbErr) {
@@ -128,12 +153,12 @@ func (a *Auth) Login(r *http.Request) any {
 	}{tokenString}
 }
 
-func (a *Auth) Logout(r *http.Request) any {
+func (a *Auth) logout(r *http.Request) any {
 	// client delete token, no op on server side
 	return &j.Response{Code: http.StatusOK, Msg: "success"}
 }
 
-func (a *Auth) Authenticate(username, password string) (*User, error) {
+func (a *Auth) authenticate(username, password string) (*User, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), sqlx.DefaultTimeout)
 	defer cancel()
 
