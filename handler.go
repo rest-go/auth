@@ -67,7 +67,14 @@ func (a *Auth) setup() any {
 	}
 	username := superUsername
 	password := genPasswd(12)
-	_, dbErr = a.db.ExecQuery(ctx, createSuperUser, username, password)
+	hashedPassword, err := hashPassword(password)
+	if err != nil {
+		return &j.Response{
+			Code: http.StatusInternalServerError,
+			Msg:  "password hash error",
+		}
+	}
+	_, dbErr = a.db.ExecQuery(ctx, createSuperUser, username, hashedPassword)
 	if dbErr != nil {
 		return j.SQLErrResponse(dbErr)
 	}
