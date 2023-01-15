@@ -1,10 +1,13 @@
 package auth
 
 import (
+	"context"
 	"crypto/rand"
 	"encoding/base32"
 	"fmt"
+	"log"
 
+	"github.com/rest-go/rest/pkg/sqlx"
 	"golang.org/x/crypto/bcrypt"
 )
 
@@ -12,10 +15,10 @@ const (
 	createUserTable = `
 	CREATE TABLE users (
 		id %s,
-		username VARCHAR(32) UNIQUE,
-		password VARCHAR(72),
-		is_admin bool,
-		is_superuser bool
+		username VARCHAR(32) UNIQUE NOT NULL,
+		password VARCHAR(72) NOT NULL,
+		is_admin bool NOT NULL DEFAULT false,
+		is_superuser bool NOT NULL DEFAULT false
 	)
 	`
 	createSuperUser = `INSERT INTO users (username, password, is_superuser) VALUES (?, ?, true)`
@@ -55,4 +58,28 @@ func genPasswd(length int) string {
 		panic(err)
 	}
 	return base32.StdEncoding.EncodeToString(randomBytes)[:length]
+}
+
+// setupUsers create `users` table and create a super user
+func setupUsers(db *sqlx.DB) (username, password string, err error) {
+	log.Print("create users table")
+	idSQL := primaryKeySQL[db.DriverName]
+	createTableQuery := fmt.Sprintf(createUserTable, idSQL)
+	ctx, cancel := context.WithTimeout(context.Background(), sqlx.DefaultTimeout)
+	defer cancel()
+	_, dbErr := db.ExecQuery(ctx, createTableQuery)
+	if dbErr != nil {
+		return "", "", dbErr
+	}
+
+	log.Print("create a super user")
+	username = superUsername
+	length := 12
+	password = genPasswd(length)
+	hashedPassword, err := hashPassword(password)
+	if err != nil {
+		return "", "", err
+	}
+	_, dbErr = db.ExecQuery(ctx, createSuperUser, username, hashedPassword)
+	return username, password, dbErr
 }

@@ -4,7 +4,7 @@ go 1.18
 
 require (
 	github.com/golang-jwt/jwt/v4 v4.4.3
-	github.com/rest-go/rest v0.0.0-20230115080522-05c30a78e55a
+	github.com/rest-go/rest v0.0.0-20230115133743-efc54e84cc1f
 	github.com/stretchr/testify v1.8.1
 	golang.org/x/crypto v0.5.0
 )

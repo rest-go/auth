@@ -57,28 +57,15 @@ func (a *Auth) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 }
 
 func (a *Auth) setup() any {
-	idSQL := primaryKeySQL[a.db.DriverName]
-	createTableQuery := fmt.Sprintf(createUserTable, idSQL)
-	ctx, cancel := context.WithTimeout(context.Background(), sqlx.DefaultTimeout)
-	defer cancel()
-	_, dbErr := a.db.ExecQuery(ctx, createTableQuery)
-	if dbErr != nil {
-		return j.SQLErrResponse(dbErr)
-	}
-	username := superUsername
-	length := 12
-	password := genPasswd(length)
-	hashedPassword, err := hashPassword(password)
+	username, password, err := setupUsers(a.db)
 	if err != nil {
-		return &j.Response{
-			Code: http.StatusInternalServerError,
-			Msg:  "password hash error",
-		}
+		return j.ErrResponse(err)
 	}
-	_, dbErr = a.db.ExecQuery(ctx, createSuperUser, username, hashedPassword)
-	if dbErr != nil {
-		return j.SQLErrResponse(dbErr)
+	err = setupPolicies(a.db)
+	if err != nil {
+		return j.ErrResponse(err)
 	}
+
 	return &struct {
 		Username string
 		Password string
@@ -109,7 +96,7 @@ func (a *Auth) register(r *http.Request) any {
 	}
 	_, dbErr := a.db.ExecQuery(ctx, createUser, user.Username, hashedPassword)
 	if dbErr != nil {
-		return j.SQLErrResponse(dbErr)
+		return j.ErrResponse(dbErr)
 	}
 
 	return &j.Response{Code: http.StatusOK, Msg: "success"}
@@ -130,7 +117,7 @@ func (a *Auth) login(r *http.Request) any {
 	if err != nil {
 		var dbErr sqlx.Error
 		if errors.As(err, &dbErr) {
-			return j.SQLErrResponse(dbErr)
+			return j.ErrResponse(dbErr)
 		} else {
 			return &j.Response{
 				Code: http.StatusUnauthorized,

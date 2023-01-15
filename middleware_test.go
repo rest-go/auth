@@ -27,11 +27,9 @@ func testHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func TestAuthMiddleware(t *testing.T) {
-	auth, err := New("sqlite://ci.db", []byte("test"))
+	_, err := testAuth.db.ExecQuery(context.Background(), "DROP TABLE IF EXISTS users")
 	assert.Nil(t, err)
-	_, err = auth.db.ExecQuery(context.Background(), "DROP TABLE IF EXISTS users")
-	assert.Nil(t, err)
-	_ = auth.setup()
+	_ = testAuth.setup()
 
 	body := strings.NewReader(`{
 			"username": "hello",
@@ -39,7 +37,7 @@ func TestAuthMiddleware(t *testing.T) {
 		}`)
 	req := httptest.NewRequest(http.MethodPost, "/auth/register", body)
 	w := httptest.NewRecorder()
-	auth.ServeHTTP(w, req)
+	testAuth.ServeHTTP(w, req)
 
 	body = strings.NewReader(`{
 		"username": "hello",
@@ -47,7 +45,7 @@ func TestAuthMiddleware(t *testing.T) {
 	}`)
 	req = httptest.NewRequest(http.MethodPost, "/auth/login", body)
 	w = httptest.NewRecorder()
-	auth.ServeHTTP(w, req)
+	testAuth.ServeHTTP(w, req)
 	res := w.Result()
 	defer res.Body.Close()
 	data, err := io.ReadAll(res.Body)
@@ -72,7 +70,7 @@ func TestAuthMiddleware(t *testing.T) {
 		w := httptest.NewRecorder()
 		req := httptest.NewRequest(http.MethodGet, "/test", nil)
 		req.Header.Add(AuthTokenHeader, token)
-		authHandler := auth.Middleware(http.HandlerFunc(testHandler))
+		authHandler := testAuth.Middleware(http.HandlerFunc(testHandler))
 		authHandler.ServeHTTP(w, req)
 		res := w.Result()
 		defer res.Body.Close()
