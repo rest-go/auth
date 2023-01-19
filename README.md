@@ -59,8 +59,8 @@ func main() {
 ## Setup database
 
 Send a `POST` request to `/auth/setup` to set up database tables for users. This
-will also create a super user account and return the username and password in the
-response.
+will also create an admin user account and return the username and password in
+the response.
 
 ``` bash
 $ curl -XPOST "localhost:8000/auth/setup"

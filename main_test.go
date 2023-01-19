@@ -21,11 +21,11 @@ func TestMain(m *testing.M) {
 	testAuth = Auth{db: db}
 
 	// drop previous test tables
-	_, err = testAuth.db.ExecQuery(context.Background(), "DROP TABLE IF EXISTS users")
+	_, err = testAuth.db.ExecQuery(context.Background(), "DROP TABLE IF EXISTS auth_users")
 	if err != nil {
 		log.Fatal(err)
 	}
-	_, err = testAuth.db.ExecQuery(context.Background(), "DROP TABLE IF EXISTS policies")
+	_, err = testAuth.db.ExecQuery(context.Background(), "DROP TABLE IF EXISTS auth_policies")
 	if err != nil {
 		log.Fatal(err)
 	}

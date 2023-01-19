@@ -9,8 +9,9 @@ import (
 )
 
 const (
+	PolicyTableName   = "auth_policies"
 	createPolicyTable = `
-	CREATE TABLE policies (
+	CREATE TABLE auth_policies (
 		id %s,
 		description VARCHAR(256) NOT NULL,
 		table_name VARCHAR(128) NOT NULL,
@@ -19,36 +20,30 @@ const (
 		internal BOOLEAN NOT NULL
 	)
 	`
-	createPolicy = `
-		INSERT INTO policies (description, table_name, action, expression, internal)
+	createInternalPolicy = `
+		INSERT INTO auth_policies (description, table_name, action, expression, internal)
 		VALUES (?, ?, ?, ?, true)
 	`
 )
 
 var defaultPolicies = []Policy{
 	{
-		Description: "read users is limited to current auth user or admin user",
-		TableName:   "users",
-		Action:      "read",
-		Expression:  "id = auth_user.id",
-	},
-	{
-		Description: "update users is limited to current auth user",
-		TableName:   "users",
-		Action:      "update",
-		Expression:  "id = auth_user.id",
-	},
-	{
-		Description: "delete users is limited to current auth user",
-		TableName:   "users",
-		Action:      "delete",
-		Expression:  "id = auth_user.id",
-	},
-	{
 		Description: "policies operations are limited to admin user",
-		TableName:   "policies",
+		TableName:   "auth_policies",
 		Action:      "all",
 		Expression:  "auth_user.is_admin",
+	},
+	{
+		Description: "users are limited to filter by id by default",
+		TableName:   "auth_users",
+		Action:      "all",
+		Expression:  "id = auth_user.id",
+	},
+	{
+		Description: "all tables are limited to filter by user_id by default",
+		TableName:   "all",
+		Action:      "all",
+		Expression:  "user_id = auth_user.id",
 	},
 }
 
@@ -79,7 +74,7 @@ func setupPolicies(db *sqlx.DB) error {
 	for _, policy := range defaultPolicies {
 		_, dbErr := db.ExecQuery(
 			ctx,
-			createPolicy,
+			createInternalPolicy,
 			policy.Description,
 			policy.TableName,
 			policy.Action,

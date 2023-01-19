@@ -34,9 +34,6 @@ func (a *Auth) Middleware(next http.Handler) http.Handler {
 					if isAdmin, ok := claims["is_admin"]; ok {
 						user.IsAdmin = isAdmin.(bool)
 					}
-					if isSuperUser, ok := claims["is_superuser"]; ok {
-						user.IsSuperUser = isSuperUser.(bool)
-					}
 				} else {
 					log.Printf("invalid token: %v", token)
 				}

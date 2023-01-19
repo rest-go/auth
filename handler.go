@@ -15,7 +15,7 @@ import (
 	"golang.org/x/crypto/bcrypt"
 )
 
-const superUsername = "rest_super"
+const adminUsername = "rest_admin"
 
 func (a *Auth) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodPost {
@@ -128,10 +128,9 @@ func (a *Auth) login(r *http.Request) any {
 
 	// generate and return jwt token
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, jwt.MapClaims{
-		"user_id":      user.ID,
-		"is_admin":     user.IsAdmin,
-		"is_superuser": user.IsSuperUser,
-		"exp":          time.Now().Add(14 * 24 * time.Hour).Unix(),
+		"user_id":  user.ID,
+		"is_admin": user.IsAdmin,
+		"exp":      time.Now().Add(14 * 24 * time.Hour).Unix(),
 	})
 
 	// Sign and get the complete encoded token as a string using the secret
@@ -167,10 +166,9 @@ func (a *Auth) authenticate(username, password string) (*User, error) {
 		return nil, errors.New("password doesn't match")
 	}
 	user := &User{
-		ID:          row["id"].(int64),
-		Username:    username,
-		IsAdmin:     row["is_admin"].(bool),
-		IsSuperUser: row["is_superuser"].(bool),
+		ID:       row["id"].(int64),
+		Username: username,
+		IsAdmin:  row["is_admin"].(bool),
 	}
 	return user, nil
 }

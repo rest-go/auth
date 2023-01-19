@@ -13,27 +13,25 @@ import (
 )
 
 const (
+	UserTableName   = "auth_users"
 	createUserTable = `
-	CREATE TABLE users (
+	CREATE TABLE auth_users (
 		id %s,
 		username VARCHAR(32) UNIQUE NOT NULL,
 		password VARCHAR(72) NOT NULL,
-		is_admin bool NOT NULL DEFAULT false,
-		is_superuser bool NOT NULL DEFAULT false
+		is_admin bool NOT NULL DEFAULT false
 	)
 	`
-	createSuperUser = `INSERT INTO users (username, password, is_superuser) VALUES (?, ?, true)`
-	createAdminUser = `INSERT INTO users (username, password, is_admin) VALUES (?, ?, true)`
-	createUser      = `INSERT INTO users (username, password) VALUES (?, ?)`
-	queryUser       = `SELECT id, username, password, is_admin, is_superuser FROM users WHERE username = ?`
+	createAdminUser = `INSERT INTO auth_users (username, password, is_admin) VALUES (?, ?, true)`
+	createUser      = `INSERT INTO auth_users (username, password) VALUES (?, ?)`
+	queryUser       = `SELECT id, username, password, is_admin FROM auth_users WHERE username = ?`
 )
 
 type User struct {
-	ID          int64  `json:"id"`
-	Username    string `json:"username"`
-	Password    string `json:"password"`
-	IsAdmin     bool   `json:"is_admin"`
-	IsSuperUser bool   `json:"is_superuser"`
+	ID       int64  `json:"id"`
+	Username string `json:"username"`
+	Password string `json:"password"`
+	IsAdmin  bool   `json:"is_admin"`
 }
 
 func (u *User) IsAnonymous() bool {
@@ -48,8 +46,14 @@ func (u *User) hasPerm(policy *Policy) (hasPerm bool, withUserIDColumn string) {
 	// remove all the spaces in expression
 	exp := strings.ReplaceAll(policy.Expression, " ", "")
 	// if ask a admin user perm
-	if exp == "auth_user.is_admin" && u.IsAdmin {
+	if exp == "" {
 		return true, ""
+	} else if exp == "auth_user.is_admin" {
+		if u.IsAdmin {
+			return true, ""
+		} else {
+			return false, ""
+		}
 	} else if strings.HasSuffix(exp, "=auth_user.id") {
 		// has perm to query table, but will check user id column
 		return true, strings.TrimSuffix(exp, "=auth_user.id")
@@ -60,7 +64,12 @@ func (u *User) hasPerm(policy *Policy) (hasPerm bool, withUserIDColumn string) {
 }
 
 func (u *User) HasPerm(table, action string, policies map[string]map[string]Policy) (hasPerm bool, withUserIDColumn string) {
-	if ps, ok := policies[table]; ok {
+	var ps map[string]Policy
+	ps, ok := policies[table]
+	if !ok {
+		ps = policies["all"]
+	}
+	if len(ps) > 0 {
 		if policy, ok := ps[action]; ok {
 			return u.hasPerm(&policy)
 		} else if policy, ok := ps["all"]; ok {
@@ -88,7 +97,7 @@ func genPasswd(length int) string {
 	return base32.StdEncoding.EncodeToString(randomBytes)[:length]
 }
 
-// setupUsers create `users` table and create a super user
+// setupUsers create `users` table and create an admin user
 func setupUsers(db *sqlx.DB) (username, password string, err error) {
 	log.Print("create users table")
 	idSQL := primaryKeySQL[db.DriverName]
@@ -100,14 +109,14 @@ func setupUsers(db *sqlx.DB) (username, password string, err error) {
 		return "", "", dbErr
 	}
 
-	log.Print("create a super user")
-	username = superUsername
+	log.Print("create a admin user")
+	username = adminUsername
 	length := 12
 	password = genPasswd(length)
 	hashedPassword, err := hashPassword(password)
 	if err != nil {
 		return "", "", err
 	}
-	_, dbErr = db.ExecQuery(ctx, createSuperUser, username, hashedPassword)
+	_, dbErr = db.ExecQuery(ctx, createAdminUser, username, hashedPassword)
 	return username, password, dbErr
 }

@@ -6,34 +6,59 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func TestUser_HasPerm(t *testing.T) {
-	policies := map[string]map[string]Policy{
-		"users": {
-			"read": {
-				Description: "read users is limited to current auth user or admin user",
-				TableName:   "users",
-				Action:      "read",
-				Expression:  "id = auth_user.id",
-			},
+var policies = map[string]map[string]Policy{
+	// default policies
+	"users": {
+		"all": {
+			Description: "users are limited to by `id` field",
+			TableName:   "users",
+			Action:      "all",
+			Expression:  "id = auth_user.id",
 		},
-		"policies": {
-			"all": {
-				Description: "policies operations are limited to admin user",
-				TableName:   "policies",
-				Action:      "all",
-				Expression:  "auth_user.is_admin",
-			},
+	},
+	"policies": {
+		"all": {
+			Description: "policies operations are limited to admin user",
+			TableName:   "policies",
+			Action:      "all",
+			Expression:  "auth_user.is_admin",
 		},
-		"todos": {
-			"read": {
-				Description: "todos read is limited to current auth user",
-				TableName:   "todos",
-				Action:      "read",
-				Expression:  "author_id = auth_user.id",
-			},
+	},
+	"all": {
+		"all": {
+			Description: "all tables are limited to filter by user_id by default",
+			TableName:   "all",
+			Action:      "all",
+			Expression:  "user_id = auth_user.id",
 		},
-	}
+	},
 
+	// custom policies
+	"todos": {
+		"all": {
+			Description: "todos operations are limited by `author_id` field",
+			TableName:   "todos",
+			Action:      "all",
+			Expression:  "author_id = auth_user.id",
+		},
+	},
+	"articles": {
+		"read": {
+			Description: "read is allowed",
+			TableName:   "articles",
+			Action:      "read",
+			Expression:  "",
+		},
+		"all": {
+			Description: "read_mine/update/delete are limited is limited",
+			TableName:   "articles",
+			Action:      "all",
+			Expression:  "author_id = auth_user.id",
+		},
+	},
+}
+
+func TestUser_HasPerm(t *testing.T) {
 	for _, test := range []struct {
 		name             string
 		user             User
@@ -67,10 +92,42 @@ func TestUser_HasPerm(t *testing.T) {
 			withUserIDColumn: "",
 		},
 		{
-			name:             "users have permission on todos with custom column",
+			name:             "limit by `user_id` field by default",
+			user:             User{IsAdmin: false},
+			table:            "comments",
+			action:           "read",
+			hasPerm:          true,
+			withUserIDColumn: "user_id",
+		},
+		{
+			name:             "users have read permission on todos with custom column",
 			user:             User{IsAdmin: false},
 			table:            "todos",
 			action:           "read",
+			hasPerm:          true,
+			withUserIDColumn: "author_id",
+		},
+		{
+			name:             "users have write permission on todos with custom column",
+			user:             User{IsAdmin: false},
+			table:            "todos",
+			action:           "write",
+			hasPerm:          true,
+			withUserIDColumn: "author_id",
+		},
+		{
+			name:             "users have permission on read articles",
+			user:             User{IsAdmin: false},
+			table:            "articles",
+			action:           "read",
+			hasPerm:          true,
+			withUserIDColumn: "",
+		},
+		{
+			name:             "limit to current auth user when read mine",
+			user:             User{IsAdmin: false},
+			table:            "articles",
+			action:           "read_mine",
 			hasPerm:          true,
 			withUserIDColumn: "author_id",
 		},
