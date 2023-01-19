@@ -6,55 +6,29 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-var policies = map[string]map[string]Policy{
-	// default policies
+var policies = map[string]map[string]string{
+	// Default policies
+	// users are limited to by `id` field
 	"users": {
-		"all": {
-			Description: "users are limited to by `id` field",
-			TableName:   "users",
-			Action:      "all",
-			Expression:  "id = auth_user.id",
-		},
+		"all": "id = auth_user.id",
 	},
+	// policies operations are limited to admin user
 	"policies": {
-		"all": {
-			Description: "policies operations are limited to admin user",
-			TableName:   "policies",
-			Action:      "all",
-			Expression:  "auth_user.is_admin",
-		},
+		"all": "auth_user.is_admin",
 	},
+	// all tables are limited to filter by user_id by default
 	"all": {
-		"all": {
-			Description: "all tables are limited to filter by user_id by default",
-			TableName:   "all",
-			Action:      "all",
-			Expression:  "user_id = auth_user.id",
-		},
+		"all": "user_id = auth_user.id",
 	},
 
-	// custom policies
+	// Custom policies
+	// todos operations are limited by `author_id` field
 	"todos": {
-		"all": {
-			Description: "todos operations are limited by `author_id` field",
-			TableName:   "todos",
-			Action:      "all",
-			Expression:  "author_id = auth_user.id",
-		},
+		"all": "author_id = auth_user.id",
 	},
 	"articles": {
-		"read": {
-			Description: "read is allowed",
-			TableName:   "articles",
-			Action:      "read",
-			Expression:  "",
-		},
-		"all": {
-			Description: "read_mine/update/delete are limited is limited",
-			TableName:   "articles",
-			Action:      "all",
-			Expression:  "author_id = auth_user.id",
-		},
+		"read": "",
+		"all":  "author_id = auth_user.id",
 	},
 }
 
@@ -63,7 +37,7 @@ func TestUser_HasPerm(t *testing.T) {
 		name             string
 		user             User
 		table            string
-		action           string
+		action           Action
 		hasPerm          bool
 		withUserIDColumn string
 	}{
@@ -71,7 +45,7 @@ func TestUser_HasPerm(t *testing.T) {
 			name:             "users has permission to read their records",
 			user:             User{IsAdmin: false},
 			table:            "users",
-			action:           "read",
+			action:           ActionRead,
 			hasPerm:          true,
 			withUserIDColumn: "id",
 		},
@@ -79,7 +53,7 @@ func TestUser_HasPerm(t *testing.T) {
 			name:             "non-admin users don't have permission on policies",
 			user:             User{IsAdmin: false},
 			table:            "policies",
-			action:           "read",
+			action:           ActionRead,
 			hasPerm:          false,
 			withUserIDColumn: "",
 		},
@@ -87,7 +61,7 @@ func TestUser_HasPerm(t *testing.T) {
 			name:             "admin users have permission on policies",
 			user:             User{IsAdmin: true},
 			table:            "policies",
-			action:           "read",
+			action:           ActionRead,
 			hasPerm:          true,
 			withUserIDColumn: "",
 		},
@@ -95,7 +69,7 @@ func TestUser_HasPerm(t *testing.T) {
 			name:             "limit by `user_id` field by default",
 			user:             User{IsAdmin: false},
 			table:            "comments",
-			action:           "read",
+			action:           ActionRead,
 			hasPerm:          true,
 			withUserIDColumn: "user_id",
 		},
@@ -103,7 +77,7 @@ func TestUser_HasPerm(t *testing.T) {
 			name:             "users have read permission on todos with custom column",
 			user:             User{IsAdmin: false},
 			table:            "todos",
-			action:           "read",
+			action:           ActionRead,
 			hasPerm:          true,
 			withUserIDColumn: "author_id",
 		},
@@ -111,7 +85,7 @@ func TestUser_HasPerm(t *testing.T) {
 			name:             "users have write permission on todos with custom column",
 			user:             User{IsAdmin: false},
 			table:            "todos",
-			action:           "write",
+			action:           ActionCreate,
 			hasPerm:          true,
 			withUserIDColumn: "author_id",
 		},
@@ -119,7 +93,7 @@ func TestUser_HasPerm(t *testing.T) {
 			name:             "users have permission on read articles",
 			user:             User{IsAdmin: false},
 			table:            "articles",
-			action:           "read",
+			action:           ActionRead,
 			hasPerm:          true,
 			withUserIDColumn: "",
 		},
@@ -127,7 +101,7 @@ func TestUser_HasPerm(t *testing.T) {
 			name:             "limit to current auth user when read mine",
 			user:             User{IsAdmin: false},
 			table:            "articles",
-			action:           "read_mine",
+			action:           ActionReadMine,
 			hasPerm:          true,
 			withUserIDColumn: "author_id",
 		},

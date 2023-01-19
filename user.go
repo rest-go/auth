@@ -42,9 +42,9 @@ func (u *User) IsAuthenticated() bool {
 	return u.ID != 0
 }
 
-func (u *User) hasPerm(policy *Policy) (hasPerm bool, withUserIDColumn string) {
+func (u *User) hasPerm(exp string) (hasPerm bool, withUserIDColumn string) {
 	// remove all the spaces in expression
-	exp := strings.ReplaceAll(policy.Expression, " ", "")
+	exp = strings.ReplaceAll(exp, " ", "")
 	// if ask a admin user perm
 	if exp == "" {
 		return true, ""
@@ -63,17 +63,17 @@ func (u *User) hasPerm(policy *Policy) (hasPerm bool, withUserIDColumn string) {
 	return false, ""
 }
 
-func (u *User) HasPerm(table, action string, policies map[string]map[string]Policy) (hasPerm bool, withUserIDColumn string) {
-	var ps map[string]Policy
+func (u *User) HasPerm(table string, action Action, policies map[string]map[string]string) (hasPerm bool, withUserIDColumn string) {
+	var ps map[string]string
 	ps, ok := policies[table]
 	if !ok {
 		ps = policies["all"]
 	}
 	if len(ps) > 0 {
-		if policy, ok := ps[action]; ok {
-			return u.hasPerm(&policy)
-		} else if policy, ok := ps["all"]; ok {
-			return u.hasPerm(&policy)
+		if exp, ok := ps[action.String()]; ok {
+			return u.hasPerm(exp)
+		} else if exp, ok := ps["all"]; ok {
+			return u.hasPerm(exp)
 		}
 	}
 

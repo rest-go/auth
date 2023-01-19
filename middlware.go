@@ -3,10 +3,10 @@ package auth
 import (
 	"context"
 	"fmt"
-	"log"
 	"net/http"
 
 	"github.com/golang-jwt/jwt/v4"
+	"github.com/rest-go/rest/pkg/log"
 )
 
 type AuthUserCtxKey string
@@ -27,7 +27,7 @@ func (a *Auth) Middleware(next http.Handler) http.Handler {
 				return a.secret, nil
 			})
 			if err != nil {
-				log.Printf("parse token err: %v", err)
+				log.Errorf("parse token err: %v", err)
 			} else {
 				if claims, ok := token.Claims.(jwt.MapClaims); ok && token.Valid {
 					user = &User{ID: int64(claims["user_id"].(float64))}
@@ -35,7 +35,7 @@ func (a *Auth) Middleware(next http.Handler) http.Handler {
 						user.IsAdmin = isAdmin.(bool)
 					}
 				} else {
-					log.Printf("invalid token: %v", token)
+					log.Errorf("invalid token: %v", token)
 				}
 			}
 		}
