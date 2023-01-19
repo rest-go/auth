@@ -16,13 +16,12 @@ const (
 		description VARCHAR(256) NOT NULL,
 		table_name VARCHAR(128) NOT NULL,
 		action VARCHAR(16) NOT NULL,
-		expression VARCHAR(128) NOT NULL,
-		internal BOOLEAN NOT NULL
+		expression VARCHAR(128) NOT NULL
 	)
 	`
 	createInternalPolicy = `
-		INSERT INTO auth_policies (description, table_name, action, expression, internal)
-		VALUES (?, ?, ?, ?, true)
+		INSERT INTO auth_policies (description, table_name, action, expression)
+		VALUES (?, ?, ?, ?)
 	`
 )
 
@@ -34,13 +33,13 @@ var defaultPolicies = []Policy{
 		Expression:  "auth_user.is_admin",
 	},
 	{
-		Description: "users are limited to filter by id by default",
+		Description: "users are limited to admin user(to deny user to update self to admin)",
 		TableName:   "auth_users",
 		Action:      "all",
-		Expression:  "id = auth_user.id",
+		Expression:  "auth_user.is_admin",
 	},
 	{
-		Description: "all tables are limited to filter by user_id by default",
+		Description: "all tables/actions are limited to filter by user_id",
 		TableName:   "all",
 		Action:      "all",
 		Expression:  "user_id = auth_user.id",
@@ -53,8 +52,6 @@ type Policy struct {
 	Description string `json:"description"`
 	TableName   string `json:"table_name"`
 	Action      string `json:"action"`
-	Column      string `json:"column"`
-	Operator    string `json:"operator"`
 	Expression  string `json:"expression"`
 }
 

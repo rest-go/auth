@@ -49,31 +49,31 @@ func (u *User) hasPerm(exp string) (hasPerm bool, withUserIDColumn string) {
 	if exp == "" {
 		return true, ""
 	} else if exp == "auth_user.is_admin" {
-		if u.IsAdmin {
-			return true, ""
-		} else {
-			return false, ""
-		}
+		return u.IsAdmin, ""
+	} else if exp == "auth_user.is_authenticated" {
+		return u.IsAuthenticated(), ""
 	} else if strings.HasSuffix(exp, "=auth_user.id") {
-		// has perm to query table, but will check user id column
-		return true, strings.TrimSuffix(exp, "=auth_user.id")
+		return u.IsAuthenticated(), strings.TrimSuffix(exp, "=auth_user.id")
 	}
 
-	log.Info("invalid policy rule found, return false")
+	log.Errorf("invalid policy exp: %s, return false", exp)
 	return false, ""
 }
 
 func (u *User) HasPerm(table string, action Action, policies map[string]map[string]string) (hasPerm bool, withUserIDColumn string) {
 	var ps map[string]string
 	ps, ok := policies[table]
+	defaultTablePerm := policies["all"]
 	if !ok {
-		ps = policies["all"]
+		ps = defaultTablePerm
 	}
 	if len(ps) > 0 {
 		if exp, ok := ps[action.String()]; ok {
 			return u.hasPerm(exp)
 		} else if exp, ok := ps["all"]; ok {
 			return u.hasPerm(exp)
+		} else {
+			return u.hasPerm(defaultTablePerm["all"])
 		}
 	}
 

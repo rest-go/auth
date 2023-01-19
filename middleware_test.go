@@ -27,7 +27,7 @@ func testHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func TestAuthMiddleware(t *testing.T) {
-	_, err := testAuth.db.ExecQuery(context.Background(), "DROP TABLE IF EXISTS users")
+	_, err := testAuth.db.ExecQuery(context.Background(), "DROP TABLE IF EXISTS auth_users")
 	assert.Nil(t, err)
 	_ = testAuth.setup()
 

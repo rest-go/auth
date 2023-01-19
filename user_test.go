@@ -8,9 +8,9 @@ import (
 
 var policies = map[string]map[string]string{
 	// Default policies
-	// users are limited to by `id` field
+	// users are limited to admin user
 	"users": {
-		"all": "id = auth_user.id",
+		"all": "auth_user.is_admin",
 	},
 	// policies operations are limited to admin user
 	"policies": {
@@ -30,8 +30,15 @@ var policies = map[string]map[string]string{
 		"read": "",
 		"all":  "author_id = auth_user.id",
 	},
+	"comments": {
+		"read": "",
+	},
+	"reviews": {
+		"read": "auth_user.is_authenticated",
+	},
 }
 
+//nolint:funlen
 func TestUser_HasPerm(t *testing.T) {
 	for _, test := range []struct {
 		name             string
@@ -42,16 +49,24 @@ func TestUser_HasPerm(t *testing.T) {
 		withUserIDColumn string
 	}{
 		{
-			name:             "users has permission to read their records",
-			user:             User{IsAdmin: false},
+			name:             "non-admin users don't have permission on users table",
+			user:             User{IsAdmin: false, ID: 1},
 			table:            "users",
 			action:           ActionRead,
+			hasPerm:          false,
+			withUserIDColumn: "",
+		},
+		{
+			name:             "admin users have permission on users tables",
+			user:             User{IsAdmin: true, ID: 1},
+			table:            "users",
+			action:           ActionUpdate,
 			hasPerm:          true,
-			withUserIDColumn: "id",
+			withUserIDColumn: "",
 		},
 		{
 			name:             "non-admin users don't have permission on policies",
-			user:             User{IsAdmin: false},
+			user:             User{IsAdmin: false, ID: 1},
 			table:            "policies",
 			action:           ActionRead,
 			hasPerm:          false,
@@ -59,7 +74,7 @@ func TestUser_HasPerm(t *testing.T) {
 		},
 		{
 			name:             "admin users have permission on policies",
-			user:             User{IsAdmin: true},
+			user:             User{IsAdmin: true, ID: 1},
 			table:            "policies",
 			action:           ActionRead,
 			hasPerm:          true,
@@ -67,15 +82,15 @@ func TestUser_HasPerm(t *testing.T) {
 		},
 		{
 			name:             "limit by `user_id` field by default",
-			user:             User{IsAdmin: false},
-			table:            "comments",
+			user:             User{IsAdmin: false, ID: 1},
+			table:            "some_table",
 			action:           ActionRead,
 			hasPerm:          true,
 			withUserIDColumn: "user_id",
 		},
 		{
 			name:             "users have read permission on todos with custom column",
-			user:             User{IsAdmin: false},
+			user:             User{IsAdmin: false, ID: 1},
 			table:            "todos",
 			action:           ActionRead,
 			hasPerm:          true,
@@ -83,7 +98,7 @@ func TestUser_HasPerm(t *testing.T) {
 		},
 		{
 			name:             "users have write permission on todos with custom column",
-			user:             User{IsAdmin: false},
+			user:             User{IsAdmin: false, ID: 1},
 			table:            "todos",
 			action:           ActionCreate,
 			hasPerm:          true,
@@ -91,7 +106,7 @@ func TestUser_HasPerm(t *testing.T) {
 		},
 		{
 			name:             "users have permission on read articles",
-			user:             User{IsAdmin: false},
+			user:             User{IsAdmin: false, ID: 1},
 			table:            "articles",
 			action:           ActionRead,
 			hasPerm:          true,
@@ -99,16 +114,49 @@ func TestUser_HasPerm(t *testing.T) {
 		},
 		{
 			name:             "limit to current auth user when read mine",
-			user:             User{IsAdmin: false},
+			user:             User{IsAdmin: false, ID: 1},
 			table:            "articles",
 			action:           ActionReadMine,
 			hasPerm:          true,
 			withUserIDColumn: "author_id",
 		},
+		{
+			name:             "comments has public read perm",
+			user:             User{IsAdmin: false, ID: 1},
+			table:            "comments",
+			action:           ActionRead,
+			hasPerm:          true,
+			withUserIDColumn: "",
+		},
+		{
+			name:             "comments has default other perm",
+			user:             User{ID: 0},
+			table:            "comments",
+			action:           ActionCreate,
+			hasPerm:          false,
+			withUserIDColumn: "user_id",
+		},
+		{
+			name:             "reviews has public read perm for authenticated user",
+			user:             User{ID: 1},
+			table:            "reviews",
+			action:           ActionRead,
+			hasPerm:          true,
+			withUserIDColumn: "",
+		},
+		{
+			name:             "reviews has not allow read perm for anonymous user",
+			user:             User{ID: 0},
+			table:            "reviews",
+			action:           ActionRead,
+			hasPerm:          false,
+			withUserIDColumn: "",
+		},
 	} {
-		t.Log(test.name)
-		hasPerm, userIDColumn := test.user.HasPerm(test.table, test.action, policies)
-		assert.Equal(t, test.hasPerm, hasPerm)
-		assert.Equal(t, test.withUserIDColumn, userIDColumn)
+		t.Run(test.name, func(t *testing.T) {
+			hasPerm, userIDColumn := test.user.HasPerm(test.table, test.action, policies)
+			assert.Equal(t, test.hasPerm, hasPerm)
+			assert.Equal(t, test.withUserIDColumn, userIDColumn)
+		})
 	}
 }
