@@ -3,9 +3,9 @@ package auth
 import (
 	"context"
 	"fmt"
-	"log"
 
-	"github.com/rest-go/rest/pkg/sqlx"
+	"github.com/rest-go/rest/pkg/log"
+	"github.com/rest-go/rest/pkg/sql"
 )
 
 const (
@@ -59,18 +59,18 @@ type Policy struct {
 }
 
 // setupPolicies create `policies` table and create a default internal policies
-func setupPolicies(db *sqlx.DB) error {
-	log.Print("create policies table")
+func setupPolicies(db *sql.DB) error {
+	log.Info("create policies table")
 	idSQL := primaryKeySQL[db.DriverName]
 	createTableQuery := fmt.Sprintf(createPolicyTable, idSQL)
-	ctx, cancel := context.WithTimeout(context.Background(), sqlx.DefaultTimeout)
+	ctx, cancel := context.WithTimeout(context.Background(), sql.DefaultTimeout)
 	defer cancel()
 	_, dbErr := db.ExecQuery(ctx, createTableQuery)
 	if dbErr != nil {
 		return dbErr
 	}
 
-	log.Print("create default policies")
+	log.Info("create default policies")
 	for _, policy := range defaultPolicies {
 		_, dbErr := db.ExecQuery(
 			ctx,

@@ -11,7 +11,8 @@ import (
 
 	"github.com/golang-jwt/jwt/v4"
 	j "github.com/rest-go/rest/pkg/jsonutil"
-	"github.com/rest-go/rest/pkg/sqlx"
+	"github.com/rest-go/rest/pkg/log"
+	"github.com/rest-go/rest/pkg/sql"
 	"golang.org/x/crypto/bcrypt"
 )
 
@@ -85,7 +86,7 @@ func (a *Auth) register(r *http.Request) any {
 		}
 	}
 
-	ctx, cancel := context.WithTimeout(context.Background(), sqlx.DefaultTimeout)
+	ctx, cancel := context.WithTimeout(context.Background(), sql.DefaultTimeout)
 	defer cancel()
 	hashedPassword, err := hashPassword(user.Password)
 	if err != nil {
@@ -96,6 +97,7 @@ func (a *Auth) register(r *http.Request) any {
 	}
 	_, dbErr := a.db.ExecQuery(ctx, createUser, user.Username, hashedPassword)
 	if dbErr != nil {
+		log.Errorf("create user error: %v", dbErr)
 		return j.ErrResponse(dbErr)
 	}
 
@@ -115,7 +117,8 @@ func (a *Auth) login(r *http.Request) any {
 	// authenticate the user by input username and password
 	user, err = a.authenticate(user.Username, user.Password)
 	if err != nil {
-		var dbErr sqlx.Error
+		log.Errorf("authenticate user error: %v", err)
+		var dbErr sql.Error
 		if errors.As(err, &dbErr) {
 			return j.ErrResponse(dbErr)
 		} else {
@@ -153,11 +156,12 @@ func (a *Auth) logout(_ *http.Request) any {
 }
 
 func (a *Auth) authenticate(username, password string) (*User, error) {
-	ctx, cancel := context.WithTimeout(context.Background(), sqlx.DefaultTimeout)
+	ctx, cancel := context.WithTimeout(context.Background(), sql.DefaultTimeout)
 	defer cancel()
 
 	row, dbErr := a.db.FetchOne(ctx, queryUser, username)
 	if dbErr != nil {
+		log.Errorf("fetch user error: %v", dbErr)
 		return nil, dbErr
 	}
 	hashedPassword := row["password"].(string)

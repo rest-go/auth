@@ -8,13 +8,13 @@ import (
 	"testing"
 
 	j "github.com/rest-go/rest/pkg/jsonutil"
-	"github.com/rest-go/rest/pkg/sqlx"
+	"github.com/rest-go/rest/pkg/sql"
 )
 
 var testAuth Auth
 
 func TestMain(m *testing.M) {
-	db, err := sqlx.Open("sqlite://ci.db")
+	db, err := sql.Open("sqlite://ci.db")
 	if err != nil {
 		log.Fatal(err)
 	}

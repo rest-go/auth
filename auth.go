@@ -2,7 +2,7 @@
 package auth
 
 import (
-	"github.com/rest-go/rest/pkg/sqlx"
+	"github.com/rest-go/rest/pkg/sql"
 )
 
 var primaryKeySQL = map[string]string{
@@ -12,12 +12,12 @@ var primaryKeySQL = map[string]string{
 }
 
 type Auth struct {
-	db     *sqlx.DB
+	db     *sql.DB
 	secret []byte
 }
 
 func New(dbURL string, secret []byte) (*Auth, error) {
-	db, err := sqlx.Open(dbURL)
+	db, err := sql.Open(dbURL)
 	if err != nil {
 		return nil, err
 	}

@@ -5,10 +5,10 @@ import (
 	"crypto/rand"
 	"encoding/base32"
 	"fmt"
-	"log"
 	"strings"
 
-	"github.com/rest-go/rest/pkg/sqlx"
+	"github.com/rest-go/rest/pkg/log"
+	"github.com/rest-go/rest/pkg/sql"
 	"golang.org/x/crypto/bcrypt"
 )
 
@@ -59,7 +59,7 @@ func (u *User) hasPerm(policy *Policy) (hasPerm bool, withUserIDColumn string) {
 		return true, strings.TrimSuffix(exp, "=auth_user.id")
 	}
 
-	log.Print("invalid policy rule found, return false")
+	log.Info("invalid policy rule found, return false")
 	return false, ""
 }
 
@@ -98,18 +98,18 @@ func genPasswd(length int) string {
 }
 
 // setupUsers create `users` table and create an admin user
-func setupUsers(db *sqlx.DB) (username, password string, err error) {
-	log.Print("create users table")
+func setupUsers(db *sql.DB) (username, password string, err error) {
+	log.Info("create users table")
 	idSQL := primaryKeySQL[db.DriverName]
 	createTableQuery := fmt.Sprintf(createUserTable, idSQL)
-	ctx, cancel := context.WithTimeout(context.Background(), sqlx.DefaultTimeout)
+	ctx, cancel := context.WithTimeout(context.Background(), sql.DefaultTimeout)
 	defer cancel()
 	_, dbErr := db.ExecQuery(ctx, createTableQuery)
 	if dbErr != nil {
 		return "", "", dbErr
 	}
 
-	log.Print("create a admin user")
+	log.Info("create a admin user")
 	username = adminUsername
 	length := 12
 	password = genPasswd(length)

@@ -84,7 +84,7 @@ server side, and the client should clear the token by itself.
 $ curl  -XPOST "localhost:8000/auth/logout"
 ```
 
-## Auth middleware and GetUser
+## Auth middleware and `GetUser`
 
 Auth middleware will parse JWT token in the HTTP header, and when successful,
 set the user in the request context, the `GetUser` method can be used to get the
