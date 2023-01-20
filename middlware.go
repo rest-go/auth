@@ -2,10 +2,8 @@ package auth
 
 import (
 	"context"
-	"fmt"
 	"net/http"
 
-	"github.com/golang-jwt/jwt/v4"
 	"github.com/rest-go/rest/pkg/log"
 )
 
@@ -19,24 +17,14 @@ func (a *Auth) Middleware(next http.Handler) http.Handler {
 		user := &User{}
 		tokenString := r.Header.Get(AuthTokenHeader)
 		if tokenString != "" {
-			token, err := jwt.Parse(tokenString, func(token *jwt.Token) (interface{}, error) {
-				// Don't forget to validate the alg is what you expect:
-				if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
-					return nil, fmt.Errorf("unexpected signing method: %v", token.Header["alg"])
+			data, err := ParseJWTToken(a.secret, tokenString)
+			if err == nil {
+				user = &User{ID: int64(data["user_id"].(float64))}
+				if isAdmin, ok := data["is_admin"]; ok {
+					user.IsAdmin = isAdmin.(bool)
 				}
-				return a.secret, nil
-			})
-			if err != nil {
-				log.Errorf("parse token err: %v", err)
 			} else {
-				if claims, ok := token.Claims.(jwt.MapClaims); ok && token.Valid {
-					user = &User{ID: int64(claims["user_id"].(float64))}
-					if isAdmin, ok := claims["is_admin"]; ok {
-						user.IsAdmin = isAdmin.(bool)
-					}
-				} else {
-					log.Errorf("invalid token: %v", token)
-				}
+				log.Warn("parse jwt token with error: ", err)
 			}
 		}
 

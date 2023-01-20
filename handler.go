@@ -9,7 +9,6 @@ import (
 	"strings"
 	"time"
 
-	"github.com/golang-jwt/jwt/v4"
 	j "github.com/rest-go/rest/pkg/jsonutil"
 	"github.com/rest-go/rest/pkg/log"
 	"github.com/rest-go/rest/pkg/sql"
@@ -108,6 +107,7 @@ func (a *Auth) login(r *http.Request) any {
 	user := &User{}
 	err := json.NewDecoder(r.Body).Decode(&user)
 	if err != nil {
+		log.Warnf("failed to parse json data: %v", err)
 		return &j.Response{
 			Code: http.StatusBadRequest,
 			Msg:  fmt.Sprintf("failed to parse post json data, %v", err),
@@ -129,15 +129,11 @@ func (a *Auth) login(r *http.Request) any {
 		}
 	}
 
-	// generate and return jwt token
-	token := jwt.NewWithClaims(jwt.SigningMethodHS256, jwt.MapClaims{
+	tokenString, err := GenJWTToken(a.secret, map[string]any{
 		"user_id":  user.ID,
 		"is_admin": user.IsAdmin,
 		"exp":      time.Now().Add(14 * 24 * time.Hour).Unix(),
 	})
-
-	// Sign and get the complete encoded token as a string using the secret
-	tokenString, err := token.SignedString(a.secret)
 	if err != nil {
 		return &j.Response{
 			Code: http.StatusBadRequest,

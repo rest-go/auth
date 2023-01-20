@@ -61,6 +61,11 @@ func (u *User) hasPerm(exp string) (hasPerm bool, withUserIDColumn string) {
 }
 
 func (u *User) HasPerm(table string, action Action, policies map[string]map[string]string) (hasPerm bool, withUserIDColumn string) {
+	if policies == nil {
+		log.Warnf("nil policies")
+		return true, ""
+	}
+
 	var ps map[string]string
 	ps, ok := policies[table]
 	defaultTablePerm := policies["all"]

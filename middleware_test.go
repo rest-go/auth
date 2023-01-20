@@ -66,7 +66,7 @@ func TestAuthMiddleware(t *testing.T) {
 		defer res.Body.Close()
 		assert.Equal(t, http.StatusUnauthorized, res.StatusCode)
 	})
-	t.Run(" authorized", func(t *testing.T) {
+	t.Run("authorized", func(t *testing.T) {
 		w := httptest.NewRecorder()
 		req := httptest.NewRequest(http.MethodGet, "/test", nil)
 		req.Header.Add(AuthTokenHeader, token)
