@@ -17,7 +17,20 @@ import (
 
 const adminUsername = "rest_admin"
 
-func (a *Auth) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+type Handler struct {
+	db     *sql.DB
+	secret []byte
+}
+
+func NewHandler(dbURL string, secret []byte) (*Handler, error) {
+	db, err := sql.Open(dbURL)
+	if err != nil {
+		return nil, err
+	}
+	return &Handler{db, secret}, nil
+}
+
+func (h *Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodPost {
 		res := &j.Response{
 			Code: http.StatusMethodNotAllowed,
@@ -40,13 +53,13 @@ func (a *Auth) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	var res any
 	switch action {
 	case "setup":
-		res = a.setup()
+		res = h.setup()
 	case "register":
-		res = a.register(r)
+		res = h.register(r)
 	case "login":
-		res = a.login(r)
+		res = h.login(r)
 	case "logout":
-		res = a.logout(r)
+		res = h.logout(r)
 	default:
 		res = &j.Response{
 			Code: http.StatusBadRequest,
@@ -56,12 +69,12 @@ func (a *Auth) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	j.Write(w, res)
 }
 
-func (a *Auth) setup() any {
-	username, password, err := setupUsers(a.db)
+func (h *Handler) setup() any {
+	username, password, err := setupUsers(h.db)
 	if err != nil {
 		return j.ErrResponse(err)
 	}
-	err = setupPolicies(a.db)
+	err = setupPolicies(h.db)
 	if err != nil {
 		return j.ErrResponse(err)
 	}
@@ -75,7 +88,7 @@ func (a *Auth) setup() any {
 	}
 }
 
-func (a *Auth) register(r *http.Request) any {
+func (h *Handler) register(r *http.Request) any {
 	user := &User{}
 	err := json.NewDecoder(r.Body).Decode(&user)
 	if err != nil {
@@ -94,7 +107,7 @@ func (a *Auth) register(r *http.Request) any {
 			Msg:  "failed to hash password",
 		}
 	}
-	_, dbErr := a.db.ExecQuery(ctx, createUser, user.Username, hashedPassword)
+	_, dbErr := h.db.ExecQuery(ctx, createUser, user.Username, hashedPassword)
 	if dbErr != nil {
 		log.Errorf("create user error: %v", dbErr)
 		return j.ErrResponse(dbErr)
@@ -103,7 +116,7 @@ func (a *Auth) register(r *http.Request) any {
 	return &j.Response{Code: http.StatusOK, Msg: "success"}
 }
 
-func (a *Auth) login(r *http.Request) any {
+func (h *Handler) login(r *http.Request) any {
 	user := &User{}
 	err := json.NewDecoder(r.Body).Decode(&user)
 	if err != nil {
@@ -115,7 +128,7 @@ func (a *Auth) login(r *http.Request) any {
 	}
 
 	// authenticate the user by input username and password
-	user, err = a.authenticate(user.Username, user.Password)
+	user, err = h.authenticate(user.Username, user.Password)
 	if err != nil {
 		log.Errorf("authenticate user error: %v", err)
 		var dbErr sql.Error
@@ -129,7 +142,7 @@ func (a *Auth) login(r *http.Request) any {
 		}
 	}
 
-	tokenString, err := GenJWTToken(a.secret, map[string]any{
+	tokenString, err := GenJWTToken(h.secret, map[string]any{
 		"user_id":  user.ID,
 		"is_admin": user.IsAdmin,
 		"exp":      time.Now().Add(14 * 24 * time.Hour).Unix(),
@@ -146,16 +159,16 @@ func (a *Auth) login(r *http.Request) any {
 	}{tokenString}
 }
 
-func (a *Auth) logout(_ *http.Request) any {
+func (h *Handler) logout(_ *http.Request) any {
 	// client delete token, no op on server side
 	return &j.Response{Code: http.StatusOK, Msg: "success"}
 }
 
-func (a *Auth) authenticate(username, password string) (*User, error) {
+func (h *Handler) authenticate(username, password string) (*User, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), sql.DefaultTimeout)
 	defer cancel()
 
-	row, dbErr := a.db.FetchOne(ctx, queryUser, username)
+	row, dbErr := h.db.FetchOne(ctx, queryUser, username)
 	if dbErr != nil {
 		log.Errorf("fetch user error: %v", dbErr)
 		return nil, dbErr

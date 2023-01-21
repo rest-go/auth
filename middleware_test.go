@@ -13,7 +13,7 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func testHandler(w http.ResponseWriter, r *http.Request) {
+func testHandle(w http.ResponseWriter, r *http.Request) {
 	user := GetUser(r)
 	if user.IsAnonymous() {
 		j.Write(w, &j.Response{Code: http.StatusUnauthorized})
@@ -26,10 +26,10 @@ func testHandler(w http.ResponseWriter, r *http.Request) {
 	j.Write(w, user)
 }
 
-func TestAuthMiddleware(t *testing.T) {
-	_, err := testAuth.db.ExecQuery(context.Background(), "DROP TABLE IF EXISTS auth_users")
+func TestHandlerMiddleware(t *testing.T) {
+	_, err := testHandler.db.ExecQuery(context.Background(), "DROP TABLE IF EXISTS auth_users")
 	assert.Nil(t, err)
-	_ = testAuth.setup()
+	_ = testHandler.setup()
 
 	body := strings.NewReader(`{
 			"username": "hello",
@@ -37,7 +37,7 @@ func TestAuthMiddleware(t *testing.T) {
 		}`)
 	req := httptest.NewRequest(http.MethodPost, "/auth/register", body)
 	w := httptest.NewRecorder()
-	testAuth.ServeHTTP(w, req)
+	testHandler.ServeHTTP(w, req)
 
 	body = strings.NewReader(`{
 		"username": "hello",
@@ -45,7 +45,7 @@ func TestAuthMiddleware(t *testing.T) {
 	}`)
 	req = httptest.NewRequest(http.MethodPost, "/auth/login", body)
 	w = httptest.NewRecorder()
-	testAuth.ServeHTTP(w, req)
+	testHandler.ServeHTTP(w, req)
 	res := w.Result()
 	defer res.Body.Close()
 	data, err := io.ReadAll(res.Body)
@@ -61,16 +61,18 @@ func TestAuthMiddleware(t *testing.T) {
 		req := httptest.NewRequest(http.MethodGet, "/test", nil)
 		req.Header.Add(AuthorizationHeader, "Bearer "+token)
 		w = httptest.NewRecorder()
-		testHandler(w, req)
+		testHandle(w, req)
 		res := w.Result()
 		defer res.Body.Close()
 		assert.Equal(t, http.StatusUnauthorized, res.StatusCode)
 	})
 	t.Run("authorized", func(t *testing.T) {
+		middleware := NewMiddleware([]byte(testSecret))
+		authHandler := middleware(http.HandlerFunc(testHandle))
+
 		w := httptest.NewRecorder()
 		req := httptest.NewRequest(http.MethodGet, "/test", nil)
 		req.Header.Add(AuthorizationHeader, "Bearer "+token)
-		authHandler := testAuth.Middleware(http.HandlerFunc(testHandler))
 		authHandler.ServeHTTP(w, req)
 		res := w.Result()
 		defer res.Body.Close()

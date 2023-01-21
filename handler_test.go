@@ -11,11 +11,11 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func TestAuthHandler(t *testing.T) {
+func TestHandler(t *testing.T) {
 	t.Run("method not allowed", func(t *testing.T) {
 		req := httptest.NewRequest(http.MethodGet, "/auth/login", nil)
 		w := httptest.NewRecorder()
-		testAuth.ServeHTTP(w, req)
+		testHandler.ServeHTTP(w, req)
 		res := w.Result()
 		defer res.Body.Close()
 		assert.Equal(t, http.StatusMethodNotAllowed, res.StatusCode)
@@ -24,7 +24,7 @@ func TestAuthHandler(t *testing.T) {
 	t.Run("action not provided", func(t *testing.T) {
 		req := httptest.NewRequest(http.MethodPost, "/auth/", nil)
 		w := httptest.NewRecorder()
-		testAuth.ServeHTTP(w, req)
+		testHandler.ServeHTTP(w, req)
 		res := w.Result()
 		defer res.Body.Close()
 		assert.Equal(t, http.StatusBadRequest, res.StatusCode)
@@ -33,14 +33,14 @@ func TestAuthHandler(t *testing.T) {
 	t.Run("action not supported", func(t *testing.T) {
 		req := httptest.NewRequest(http.MethodPost, "/auth/x", nil)
 		w := httptest.NewRecorder()
-		testAuth.ServeHTTP(w, req)
+		testHandler.ServeHTTP(w, req)
 		res := w.Result()
 		defer res.Body.Close()
 		assert.Equal(t, http.StatusBadRequest, res.StatusCode)
 	})
 }
 
-func TestAuthActions(t *testing.T) {
+func TestHandlerActions(t *testing.T) {
 	t.Run("register", func(t *testing.T) {
 		body := strings.NewReader(`{
 			"username": "hello",
@@ -48,7 +48,7 @@ func TestAuthActions(t *testing.T) {
 		}`)
 		req := httptest.NewRequest(http.MethodPost, "/auth/register", body)
 		w := httptest.NewRecorder()
-		testAuth.ServeHTTP(w, req)
+		testHandler.ServeHTTP(w, req)
 		res := w.Result()
 		defer res.Body.Close()
 		assert.Equal(t, http.StatusOK, res.StatusCode)
@@ -60,7 +60,7 @@ func TestAuthActions(t *testing.T) {
 		t.Log("register same username twice, should return error")
 		req = httptest.NewRequest(http.MethodPost, "/auth/register", body)
 		w = httptest.NewRecorder()
-		testAuth.ServeHTTP(w, req)
+		testHandler.ServeHTTP(w, req)
 		res = w.Result()
 		defer res.Body.Close()
 		assert.Equal(t, http.StatusConflict, res.StatusCode)
@@ -73,7 +73,7 @@ func TestAuthActions(t *testing.T) {
 		}`)
 		req := httptest.NewRequest(http.MethodPost, "/auth/login", body)
 		w := httptest.NewRecorder()
-		testAuth.ServeHTTP(w, req)
+		testHandler.ServeHTTP(w, req)
 		res := w.Result()
 		defer res.Body.Close()
 		assert.Equal(t, http.StatusOK, res.StatusCode)
@@ -94,7 +94,7 @@ func TestAuthActions(t *testing.T) {
 		}`)
 		req = httptest.NewRequest(http.MethodPost, "/auth/login", body)
 		w = httptest.NewRecorder()
-		testAuth.ServeHTTP(w, req)
+		testHandler.ServeHTTP(w, req)
 		res = w.Result()
 		defer res.Body.Close()
 		assert.Equal(t, http.StatusUnauthorized, res.StatusCode)
@@ -106,7 +106,7 @@ func TestAuthActions(t *testing.T) {
 		}`)
 		req = httptest.NewRequest(http.MethodPost, "/auth/login", body)
 		w = httptest.NewRecorder()
-		testAuth.ServeHTTP(w, req)
+		testHandler.ServeHTTP(w, req)
 		res = w.Result()
 		defer res.Body.Close()
 		assert.Equal(t, http.StatusNotFound, res.StatusCode)
@@ -115,7 +115,7 @@ func TestAuthActions(t *testing.T) {
 	t.Run("logout", func(t *testing.T) {
 		req := httptest.NewRequest(http.MethodPost, "/auth/logout", nil)
 		w := httptest.NewRecorder()
-		testAuth.ServeHTTP(w, req)
+		testHandler.ServeHTTP(w, req)
 		res := w.Result()
 		defer res.Body.Close()
 		assert.Equal(t, http.StatusOK, res.StatusCode)

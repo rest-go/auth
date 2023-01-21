@@ -2,36 +2,38 @@ package auth
 
 import (
 	"context"
-	"log"
+
 	"net/http"
 	"os"
 	"testing"
 
 	j "github.com/rest-go/rest/pkg/jsonutil"
-	"github.com/rest-go/rest/pkg/sql"
+	"github.com/rest-go/rest/pkg/log"
 )
 
-var testAuth Auth
+var testHandler *Handler
+
+const testSecret = "test-secret"
 
 func TestMain(m *testing.M) {
-	db, err := sql.Open("sqlite://ci.db")
+	var err error
+	testHandler, err = NewHandler("sqlite://ci.db", []byte(testSecret))
 	if err != nil {
 		log.Fatal(err)
 	}
-	testAuth = Auth{db: db}
 
 	// drop previous test tables
-	_, err = testAuth.db.ExecQuery(context.Background(), "DROP TABLE IF EXISTS auth_users")
+	_, err = testHandler.db.ExecQuery(context.Background(), "DROP TABLE IF EXISTS auth_users")
 	if err != nil {
 		log.Fatal(err)
 	}
-	_, err = testAuth.db.ExecQuery(context.Background(), "DROP TABLE IF EXISTS auth_policies")
+	_, err = testHandler.db.ExecQuery(context.Background(), "DROP TABLE IF EXISTS auth_policies")
 	if err != nil {
 		log.Fatal(err)
 	}
 
 	// setup auth tables
-	val := testAuth.setup()
+	val := testHandler.setup()
 	if res, ok := val.(*j.Response); ok {
 		if res.Code != http.StatusOK {
 			log.Fatal(res.Msg)
