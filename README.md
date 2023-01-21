@@ -6,12 +6,13 @@
 
 Auth is a RESTFul authentication framework for Golang HTTP app.
 
-It handles the common tasks of registration, logging in, logging out, JWT token generation, and JWT token verification. It makes it easy to plug in authentication to an application with a small amount of integration effort.
+It handles the common tasks of registration, logging in, logging out, JWT token generation, and JWT token verification. Check https://rest-go.com/docs/guides/auth for the full documentation.
+
 
 
 ## Installation
 
-``` bash
+```bash
 $ go get github.com/rest-go/auth
 ```
 
@@ -56,31 +57,32 @@ Send a `POST` request to `/auth/setup` to set up database tables for users. This
 will also create an admin user account and return the username and password in
 the response.
 
-``` bash
+```bash
 $ curl -XPOST "localhost:8000/auth/setup"
 ```
 
-## Auth endpoints
+## Auth handler
 
-By default, it provides the below endpoints for user management.
+The `Auth` struct implements the `http.Hanlder` interface and provides the below endpoints for user management.
 
 1. Register
 
-``` bash
+```bash
 $ curl  -XPOST "localhost:8000/auth/register" -d '{"username":"hello", "password": "world"}'
 ```
 
 2. Login
 
-``` bash
+```bash
 $ curl  -XPOST "localhost:8000/auth/login" -d '{"username":"hello", "password": "world"}'
 ```
 
 3. Logout
 
-The authentication mechanism is based on JWT token, logout is a no-op on the
+Currently, the authentication mechanism is based on JWT token only, logout is a no-op on the
 server side, and the client should clear the token by itself.
-``` bash
+
+```bash
 $ curl  -XPOST "localhost:8000/auth/logout"
 ```
 
