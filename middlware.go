@@ -3,19 +3,22 @@ package auth
 import (
 	"context"
 	"net/http"
+	"strings"
 
 	"github.com/rest-go/rest/pkg/log"
 )
 
 type AuthUserCtxKey string
 
-const AuthTokenHeader = "AUTH-TOKEN"
-const AuthUserKey = AuthUserCtxKey("auth-user")
+const (
+	AuthorizationHeader = "Authorization"
+	AuthUserKey         = AuthUserCtxKey("auth-user")
+)
 
 func (a *Auth) Middleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		user := &User{}
-		tokenString := r.Header.Get(AuthTokenHeader)
+		tokenString := strings.TrimPrefix(r.Header.Get(AuthorizationHeader), "Bearer ")
 		if tokenString != "" {
 			data, err := ParseJWTToken(a.secret, tokenString)
 			if err == nil {

@@ -59,7 +59,7 @@ func TestAuthMiddleware(t *testing.T) {
 
 	t.Run("not authorized", func(t *testing.T) {
 		req := httptest.NewRequest(http.MethodGet, "/test", nil)
-		req.Header.Add(AuthTokenHeader, token)
+		req.Header.Add(AuthorizationHeader, "Bearer "+token)
 		w = httptest.NewRecorder()
 		testHandler(w, req)
 		res := w.Result()
@@ -69,7 +69,7 @@ func TestAuthMiddleware(t *testing.T) {
 	t.Run("authorized", func(t *testing.T) {
 		w := httptest.NewRecorder()
 		req := httptest.NewRequest(http.MethodGet, "/test", nil)
-		req.Header.Add(AuthTokenHeader, token)
+		req.Header.Add(AuthorizationHeader, "Bearer "+token)
 		authHandler := testAuth.Middleware(http.HandlerFunc(testHandler))
 		authHandler.ServeHTTP(w, req)
 		res := w.Result()
