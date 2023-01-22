@@ -17,11 +17,13 @@ import (
 
 const adminUsername = "rest_admin"
 
+// Handler is handler with auth endpoints like `register`, `login`, and `logout`
 type Handler struct {
 	db     *sql.DB
 	secret []byte
 }
 
+// NewHandler return a Handler with provided database url and JWT secret
 func NewHandler(dbURL string, secret []byte) (*Handler, error) {
 	db, err := sql.Open(dbURL)
 	if err != nil {
@@ -30,6 +32,7 @@ func NewHandler(dbURL string, secret []byte) (*Handler, error) {
 	return &Handler{db, secret}, nil
 }
 
+// ServeHTTP implements http.Handler interface
 func (h *Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodPost {
 		res := &j.Response{

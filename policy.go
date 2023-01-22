@@ -9,7 +9,9 @@ import (
 )
 
 const (
-	PolicyTableName   = "auth_policies"
+	// the name of the policies table
+	PolicyTableName = "auth_policies"
+
 	createPolicyTable = `
 	CREATE TABLE auth_policies (
 		id %s,

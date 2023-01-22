@@ -2,6 +2,7 @@
 
 ![ci](https://github.com/rest-go/auth/actions/workflows/ci.yml/badge.svg)
 [![codecov](https://codecov.io/gh/rest-go/auth/branch/main/graph/badge.svg?token=T38FWXMVY1)](https://codecov.io/gh/rest-go/auth)
+[![Go Reference](https://pkg.go.dev/badge/github.com/rest-go/auth.svg)](https://pkg.go.dev/github.com/rest-go/auth)
 
 
 Auth is a RESTFul Authentication and Authorization package for Golang HTTP apps.

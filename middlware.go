@@ -15,8 +15,10 @@ const (
 	AuthUserKey         = AuthUserCtxKey("auth-user")
 )
 
+// Middleware is a type alias for http handler middleware
 type Middleware func(http.Handler) http.Handler
 
+// NewMiddleware create a middleware using provided secret
 func NewMiddleware(secret []byte) Middleware {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -43,6 +45,7 @@ func NewMiddleware(secret []byte) Middleware {
 	}
 }
 
+// GetUser return the user in request context
 func GetUser(r *http.Request) *User {
 	v := r.Context().Value(AuthUserKey)
 	if v != nil {

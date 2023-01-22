@@ -13,7 +13,9 @@ import (
 )
 
 const (
-	UserTableName   = "auth_users"
+	// The name of the users table
+	UserTableName = "auth_users"
+
 	createUserTable = `
 	CREATE TABLE auth_users (
 		id %s,
@@ -27,6 +29,7 @@ const (
 	queryUser       = `SELECT id, username, password, is_admin FROM auth_users WHERE username = ?`
 )
 
+// User represents a request user
 type User struct {
 	ID       int64  `json:"id"`
 	Username string `json:"username"`
@@ -34,10 +37,12 @@ type User struct {
 	IsAdmin  bool   `json:"is_admin"`
 }
 
+// IsAuthenticated returns a bool to indicate whether user is anonymous
 func (u *User) IsAnonymous() bool {
 	return u.ID == 0
 }
 
+// IsAuthenticated returns a bool to indicate whether user is authenticated
 func (u *User) IsAuthenticated() bool {
 	return u.ID != 0
 }
@@ -60,6 +65,7 @@ func (u *User) hasPerm(exp string) (hasPerm bool, withUserIDColumn string) {
 	return false, ""
 }
 
+// HasPerm check whether user has permission to perform action on the table with provided policies
 func (u *User) HasPerm(table string, action Action, policies map[string]map[string]string) (hasPerm bool, withUserIDColumn string) {
 	if policies == nil {
 		log.Warnf("nil policies")
@@ -85,6 +91,7 @@ func (u *User) HasPerm(table string, action Action, policies map[string]map[stri
 	return true, ""
 }
 
+// HashPassword generate the hashed password for a plain password
 func HashPassword(password string) (string, error) {
 	hashedPassword, err := bcrypt.GenerateFromPassword([]byte(password), bcrypt.DefaultCost)
 	if err != nil {

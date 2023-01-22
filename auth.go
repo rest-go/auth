@@ -42,6 +42,7 @@ func ParseJWTToken(secret []byte, tokenString string) (map[string]any, error) {
 	return nil, errors.New("invalid token")
 }
 
+// Setup setup database tables and create an admin user account
 func Setup(db *sql.DB) (username, password string, err error) {
 	if isSetupDone(db) {
 		err = errors.New("setup is already done before")
