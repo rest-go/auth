@@ -69,7 +69,7 @@ func (u *User) hasPerm(exp string) (hasPerm bool, withUserIDColumn string) {
 func (u *User) HasPerm(table string, action Action, policies map[string]map[string]string) (hasPerm bool, withUserIDColumn string) {
 	if policies == nil {
 		log.Warnf("nil policies")
-		return true, ""
+		return false, ""
 	}
 
 	var ps map[string]string
@@ -100,13 +100,13 @@ func HashPassword(password string) (string, error) {
 	return string(hashedPassword), nil
 }
 
-func genPasswd(length int) string {
+func genPasswd(length int) (string, error) {
 	randomBytes := make([]byte, length)
 	_, err := rand.Read(randomBytes)
 	if err != nil {
-		panic(err)
+		return "", err
 	}
-	return base32.StdEncoding.EncodeToString(randomBytes)[:length]
+	return base32.StdEncoding.EncodeToString(randomBytes)[:length], nil
 }
 
 // setupUsers create `users` table and create an admin user
@@ -124,7 +124,10 @@ func setupUsers(db *sql.DB) (username, password string, err error) {
 	log.Info("create a admin user")
 	username = adminUsername
 	length := 12
-	password = genPasswd(length)
+	password, err = genPasswd(length)
+	if err != nil {
+		return "", "", err
+	}
 	hashedPassword, err := HashPassword(password)
 	if err != nil {
 		return "", "", err

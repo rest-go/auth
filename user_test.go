@@ -36,6 +36,9 @@ var policies = map[string]map[string]string{
 	"reviews": {
 		"read": "auth_user.is_authenticated",
 	},
+	"notes": {
+		"read": "invalid policy",
+	},
 }
 
 //nolint:funlen
@@ -152,6 +155,14 @@ func TestUser_HasPerm(t *testing.T) {
 			hasPerm:          false,
 			withUserIDColumn: "",
 		},
+		{
+			name:             "notes has invalid policy, return false",
+			user:             User{ID: 1, IsAdmin: true},
+			table:            "notes",
+			action:           ActionRead,
+			hasPerm:          false,
+			withUserIDColumn: "",
+		},
 	} {
 		t.Run(test.name, func(t *testing.T) {
 			hasPerm, userIDColumn := test.user.HasPerm(test.table, test.action, policies)
@@ -159,4 +170,10 @@ func TestUser_HasPerm(t *testing.T) {
 			assert.Equal(t, test.withUserIDColumn, userIDColumn)
 		})
 	}
+	t.Run("nil policies, return false", func(t *testing.T) {
+		user := User{ID: 1, IsAdmin: true}
+		hasPerm, userIDColumn := user.HasPerm("users", ActionRead, nil)
+		assert.False(t, hasPerm)
+		assert.Equal(t, "", userIDColumn)
+	})
 }
