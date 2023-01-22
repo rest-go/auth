@@ -39,7 +39,7 @@ var defaultPolicies = []Policy{
 		Expression:  "auth_user.is_admin",
 	},
 	{
-		Description: "all tables/actions are limited to filter by user_id",
+		Description: "all tables/actions are limited to be filtered by user_id",
 		TableName:   "all",
 		Action:      "all",
 		Expression:  "user_id = auth_user.id",

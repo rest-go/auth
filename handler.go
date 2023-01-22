@@ -70,12 +70,9 @@ func (h *Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *Handler) setup() any {
-	username, password, err := setupUsers(h.db)
+	username, password, err := Setup(h.db)
 	if err != nil {
-		return j.ErrResponse(err)
-	}
-	err = setupPolicies(h.db)
-	if err != nil {
+		log.Error("setup error: ", err)
 		return j.ErrResponse(err)
 	}
 
@@ -100,7 +97,7 @@ func (h *Handler) register(r *http.Request) any {
 
 	ctx, cancel := context.WithTimeout(context.Background(), sql.DefaultTimeout)
 	defer cancel()
-	hashedPassword, err := hashPassword(user.Password)
+	hashedPassword, err := HashPassword(user.Password)
 	if err != nil {
 		return &j.Response{
 			Code: http.StatusInternalServerError,

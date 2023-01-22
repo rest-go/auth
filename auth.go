@@ -2,10 +2,12 @@
 package auth
 
 import (
+	"context"
 	"errors"
 	"fmt"
 
 	"github.com/golang-jwt/jwt/v4"
+	"github.com/rest-go/rest/pkg/sql"
 )
 
 var primaryKeySQL = map[string]string{
@@ -38,4 +40,24 @@ func ParseJWTToken(secret []byte, tokenString string) (map[string]any, error) {
 	}
 
 	return nil, errors.New("invalid token")
+}
+
+func Setup(db *sql.DB) (username, password string, err error) {
+	if isSetupDone(db) {
+		err = errors.New("setup is already done before")
+		return
+	}
+	username, password, err = setupUsers(db)
+	if err != nil {
+		return
+	}
+	err = setupPolicies(db)
+	return
+}
+
+func isSetupDone(db *sql.DB) bool {
+	ctx, cancel := context.WithTimeout(context.Background(), sql.DefaultTimeout)
+	defer cancel()
+	_, err := db.ExecQuery(ctx, "SELECT 1 FROM auth_users")
+	return err == nil
 }

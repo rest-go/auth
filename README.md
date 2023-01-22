@@ -4,7 +4,7 @@
 [![codecov](https://codecov.io/gh/rest-go/auth/branch/main/graph/badge.svg?token=T38FWXMVY1)](https://codecov.io/gh/rest-go/auth)
 
 
-Auth is a RESTFul authentication framework for Golang HTTP app.
+Auth is a RESTFul Authentication and Authorization framework for Golang HTTP app.
 
 It handles the common tasks of registration, logging in, logging out, JWT token generation, and JWT token verification. Check https://rest-go.com/docs/guides/auth for the full documentation.
 

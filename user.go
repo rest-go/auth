@@ -85,7 +85,7 @@ func (u *User) HasPerm(table string, action Action, policies map[string]map[stri
 	return true, ""
 }
 
-func hashPassword(password string) (string, error) {
+func HashPassword(password string) (string, error) {
 	hashedPassword, err := bcrypt.GenerateFromPassword([]byte(password), bcrypt.DefaultCost)
 	if err != nil {
 		return "", fmt.Errorf("generate hashed password error %w", err)
@@ -118,7 +118,7 @@ func setupUsers(db *sql.DB) (username, password string, err error) {
 	username = adminUsername
 	length := 12
 	password = genPasswd(length)
-	hashedPassword, err := hashPassword(password)
+	hashedPassword, err := HashPassword(password)
 	if err != nil {
 		return "", "", err
 	}
